@@ -19,7 +19,7 @@ class InvalidBandError(Exception):
 
 
 def check_create_folder(folder_path):
-    """ Check whether a folder exists, if not the folder is created.
+    """Check whether a folder exists, if not the folder is created.
     Always return folder_path.
     """
 
@@ -30,6 +30,7 @@ def check_create_folder(folder_path):
 
 
 class Downloader(object):
+    """Download Landsat 8 imagery from Amazon servers."""
 
     def __init__(self, scene):
         self.s3url = 'http://landsat-pds.s3.amazonaws.com/L8/'
@@ -49,7 +50,7 @@ class Downloader(object):
         dest_dir = check_create_folder(join(download_dir, self.scene))
 
         for band in self.bands:
-            if band is 'BQA':
+            if band == 'BQA':
                 filename = '%s_%s.TIF' % (self.scene, band)
             else:
                 filename = '%s_B%s.TIF' % (self.scene, band)
@@ -63,6 +64,10 @@ class Downloader(object):
             self.fetch(url, dest_dir, filename)
 
     def fetch(self, url, path, filename):
+        """Verify if the file is already downloaded and complete. If they don't
+        exists or if are not complete, use homura download function to fetch
+        files.
+        """
 
         print(('Downloading: %s' % filename))
 
@@ -78,6 +83,8 @@ class Downloader(object):
         return True
 
     def validate_scene(self):
+        """Validate scene name and verify if it's available on Amazon servers."""
+
         if len(self.scene) == 16:
             self.scene += 'LGN00'
 
@@ -95,12 +102,15 @@ class Downloader(object):
             )
 
     def validate_bands(self):
+        """Validate bands parameter."""
+
         valid_bands = list(range(1, 12)) + ['BQA']
         for band in self.bands:
             if band not in valid_bands:
                 raise InvalidBandError('%s is not a valid band' % band)
 
     def remote_file_exists(self, url):
+        """Verify if the file is available on server."""
         status = requests.head(url).status_code
 
         if status == 200:
