@@ -10,7 +10,7 @@ from lc8_download.lc8_download import Downloader
 @click.option('-b', type=str, help="""Bands to be downloaded. Use commas as
     delimiter. Example: '-b 2,3,4,BQA'""")
 @click.option('--all', is_flag=True, help="Download all bands and metadata")
-@click.option('path', '--path', default='~/landsat/downloads',
+@click.option('path', '--path', default=None,
     type=click.Path(file_okay=False, writable=True),
     help="Directory where the files will be saved. Default: ~/landsat/downloads/")
 @click.option('--metadata', is_flag=True, help="Download metadata file.")
