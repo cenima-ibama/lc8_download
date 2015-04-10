@@ -1,8 +1,8 @@
 from pytest import raises
 
-from lc8_download.lc8_download import Downloader
-from lc8_download.lc8_download import WrongSceneNameError, InvalidBandError
-from lc8_download.lc8_download import RemoteFileDoesntExist
+from lc8_download.lc8 import Downloader
+from lc8_download.lc8 import WrongSceneNameError, InvalidBandError
+from lc8_download.lc8 import RemoteFileDoesntExist
 
 
 def test_baseurl():

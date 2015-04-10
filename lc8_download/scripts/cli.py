@@ -1,8 +1,6 @@
-# Skeleton of a CLI
-
 import click
 
-from lc8_download.lc8_download import Downloader
+from lc8_download.lc8 import Downloader
 
 
 @click.command('lc8_download')
