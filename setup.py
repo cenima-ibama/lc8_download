@@ -1,5 +1,5 @@
 from codecs import open as codecs_open
-from setuptools import setup, find_packages
+from setuptools import setup
 
 
 # Get the long description from the relevant file
@@ -8,7 +8,7 @@ with codecs_open('README.rst', encoding='utf-8') as f:
 
 
 setup(name='lc8_download',
-      version='0.1',
+      version='0.1.1',
       description="Library to download Landsat 8 imagery from Amazon servers",
       long_description=long_description,
       classifiers=[
