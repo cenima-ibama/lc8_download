@@ -23,15 +23,13 @@ Command line interface
 
     Usage: lc8_download [OPTIONS] <scene>
 
-    Options:
-      -b TEXT           Bands to be downloaded. Use commas as
-                        delimiter. Example:
-                        '-b 2,3,4,BQA'
-      --all             Download all bands and metadata
-      --path DIRECTORY  Directory where the files will be saved. Default:
-                        ~/landsat/downloads/
-      --metadata        Download metadata file.
-      --help            Show this message and exit.
+Options:
+
+    -b                Bands to be downloaded. Use commas as delimiter. Example: '-b 2,3,4,BQA'
+    --all             Download all bands and metadata
+    --path            Directory where the files will be saved. Default: ~/landsat/
+    --metadata        Download scene metadata file.
+    --help            Show this message and exit.
 
 For example:
 

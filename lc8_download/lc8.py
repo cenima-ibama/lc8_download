@@ -40,7 +40,7 @@ class Downloader(object):
         self.row = scene[6:9]
         self.baseurl = join(self.s3url, self.path, self.row, self.scene)
         self.validate_scene()
-        self.download_dir = join(expanduser('~'), 'landsat', 'downloads')
+        self.download_dir = join(expanduser('~'), 'landsat')
 
     def download(self, bands, download_dir=None, metadata=False):
         self.bands = bands
