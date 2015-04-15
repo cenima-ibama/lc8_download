@@ -11,7 +11,7 @@ from lc8_download.lc8 import Downloader
 @click.option('path', '--path', default=None,
     type=click.Path(file_okay=False, writable=True),
     help="Directory where the files will be saved. Default: ~/landsat/")
-@click.option('--metadata', is_flag=True, help="Download metadata file.")
+@click.option('--metadata', is_flag=True, help="Download scene metadata file.")
 def cli(scene, b, path, metadata, all):
     lc8 = Downloader(scene)
 
