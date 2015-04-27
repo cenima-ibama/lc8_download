@@ -1,5 +1,8 @@
 from pytest import raises
 
+from os.path import isfile, getsize
+from shutil import rmtree
+
 from lc8_download.lc8 import Downloader
 from lc8_download.lc8 import WrongSceneNameError, InvalidBandError
 from lc8_download.lc8 import RemoteFileDoesntExist
@@ -40,3 +43,9 @@ def test_bands_validation():
 
     with raises(InvalidBandError):
         scene.download(['BAQ'])
+
+    download = scene.download([11], 'tests/')
+    assert len(download) == 1
+    assert isfile(download[0][0])
+    assert getsize(download[0][0]) == download[0][1]
+    rmtree('tests/LC80030172015001LGN00/')

@@ -43,12 +43,17 @@ class Downloader(object):
         self.download_dir = join(expanduser('~'), 'landsat')
 
     def download(self, bands, download_dir=None, metadata=False):
+        """For each band, download it using the fetch function. At last,
+        return the list of files and the size of the respective remote file to
+        allow a second verification of the download success.
+        """
         self.bands = bands
         self.validate_bands()
         if download_dir is None:
             download_dir = self.download_dir
 
         dest_dir = check_create_folder(join(download_dir, self.scene))
+        downloaded = []
 
         for band in self.bands:
             if band == 'BQA':
@@ -57,17 +62,20 @@ class Downloader(object):
                 filename = '%s_B%s.TIF' % (self.scene, band)
 
             band_url = join(self.baseurl, filename)
-            self.fetch(band_url, dest_dir, filename)
+            downloaded.append(self.fetch(band_url, dest_dir, filename))
 
         if metadata:
             filename = '%s_MTL.txt' % (self.scene)
             url = join(self.baseurl, filename)
             self.fetch(url, dest_dir, filename)
 
+        return downloaded
+
     def fetch(self, url, path, filename):
         """Verify if the file is already downloaded and complete. If they don't
         exists or if are not complete, use homura download function to fetch
-        files.
+        files. Return a list with the path of the downloaded file and the size
+        of the remote file.
         """
 
         print(('Downloading: %s' % filename))
@@ -80,8 +88,7 @@ class Downloader(object):
 
         fetch(url, path)
         print(('stored at %s' % path))
-
-        return True
+        return [join(path, filename), self.get_remote_file_size(url)]
 
     def validate_scene(self):
         """Validate scene name and verify if it's available on Amazon servers."""
