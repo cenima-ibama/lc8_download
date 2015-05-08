@@ -84,7 +84,7 @@ class Downloader(object):
             size = getsize(join(path, filename))
             if size == self.get_remote_file_size(url):
                 print(('%s already exists on your system' % filename))
-                return False
+                return [join(path, filename), self.get_remote_file_size(url)]
 
         fetch(url, path)
         print(('stored at %s' % path))
