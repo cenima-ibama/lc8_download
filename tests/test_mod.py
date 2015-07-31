@@ -25,11 +25,10 @@ def test_scene_name_validation():
     with raises(WrongSceneNameError):
         Downloader('1230030172015001LGN00')
 
-    with raises(WrongSceneNameError):
-        Downloader('LC8003017201500HHH99')
-
     with raises(RemoteFileDoesntExist):
         Downloader('LC89990172015001LGN00')
+
+    Downloader('LC82290692015208LGN01')
 
 
 def test_bands_validation():

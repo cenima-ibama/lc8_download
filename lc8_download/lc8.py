@@ -96,10 +96,8 @@ class Downloader(object):
         if len(self.scene) == 16:
             self.scene += 'LGN00'
 
-        if self.scene.startswith('LC8') and self.scene.endswith('LGN00') and \
-            len(self.scene) == 21:
-            pass
-        else:
+        if not self.scene.startswith('LC8') or not self.scene.startswith('LO8') and \
+            len(self.scene) != 21:
             raise WrongSceneNameError(self.scene)
 
         index = join(self.baseurl, 'index.html')
