@@ -1,7 +1,7 @@
 lc8_download
 ============
 
-Utility to download Landsat 8 imagery from Amazon servers.
+Utility to download Landsat imagery from AWS or Google Earth Engine servers.
 
 It's quite similar to `landsat-util <https://github.com/developmentseed/landsat-util>`_,
 but if you just need to download imagery and need the BQA band and metadata information,

@@ -64,7 +64,7 @@ class DownloaderBase:
 
 
 class GoogleDownloader(DownloaderBase):
-    """Can download scene files from Google Storage"""
+    """Download Landsat Imagery from Google Earth Engine."""
     __satellitesMap = {
         'LT5': 'L5',
         'LE7': 'L7',
@@ -73,7 +73,7 @@ class GoogleDownloader(DownloaderBase):
     __url = 'http://storage.googleapis.com/earthengine-public/landsat/'
     __remote_file_ext = '.tar.bz'
 
-    def __init__ (self, sceneInfo):
+    def __init__(self, sceneInfo):
         super(GoogleDownloader, self).__init__(sceneInfo)
         self.validate_sceneInfo()
         self.satellite = self.__satellitesMap[sceneInfo.prefix]
