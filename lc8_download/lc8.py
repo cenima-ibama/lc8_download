@@ -8,8 +8,9 @@ from os import makedirs
 
 DOWNLOAD_DIR = join(expanduser('~'), 'landsat')
 
+
 class SceneInfo():
-    """Extract informations about scene from sceneName"""
+    """Extract information about scene from sceneName"""
     def __init__(self, sceneName):
         self.name = sceneName
         self.validate_name()
@@ -18,15 +19,15 @@ class SceneInfo():
         self.prefix = sceneName[0:3]
 
     def validate_name(self):
-        if len(self.name) < 21:
+        if len(self.name) != 21:
             raise WrongSceneNameError(self.name)
 
     def __repr__(self):
-        return "Scene :: %s" % self.name
+        return "Scene %s" % self.name
 
 
 class DownloaderBase:
-    """ Base class for classes used to download landsat scene by whatever storage"""
+    """Base class to download Landsat imagery from AWS or Google servers."""
 
     def __init__(self, sceneInfo):
         if not isinstance(sceneInfo, SceneInfo):
@@ -65,9 +66,9 @@ class DownloaderBase:
 class GoogleDownloader(DownloaderBase):
     """Can download scene files from Google Storage"""
     __satellitesMap = {
-        'LT5' : 'L5',
-        'LE7' : 'L7',
-        'LC8' : 'L8'
+        'LT5': 'L5',
+        'LE7': 'L7',
+        'LC8': 'L8'
     }
     __url = 'http://storage.googleapis.com/earthengine-public/landsat/'
     __remote_file_ext = '.tar.bz'
@@ -92,7 +93,7 @@ class GoogleDownloader(DownloaderBase):
 
     def validate_sceneInfo(self):
         """ Check the scene name and whether remote file exists.
-        Raises WrongSceneNameError whether the scene name is wrong
+        Raises WrongSceneNameError whether the scene name is wrong.
         """
         if self.sceneInfo.prefix not in self.__satellitesMap:
             raise WrongSceneNameError('Google Downloader: Prefix of %s (%s) is invalid'
@@ -105,12 +106,14 @@ class GoogleDownloader(DownloaderBase):
         return super(GoogleDownloader, self).remote_file_exists(self.remote_file_url)
 
     def download(self, bands, download_dir=None, metadata=False):
-        """Download remote tar.gz file with bands from scene specified on sceneInfo"""
+        """Download remote tar.gz file with bands from scene specified on
+        sceneInfo.
+        """
 
         if download_dir is None:
             download_dir = DOWNLOAD_DIR
 
-        dest_dir = check_create_folder(join(download_dir, self.sceneInfo.name))
+        check_create_folder(join(download_dir, self.sceneInfo.name))
         filename = "%s.%s" % (self.sceneInfo.name, self.__remote_file_ext)
         downloaded = self.fetch(self.remote_file_url, download_dir, filename)
         return [downloaded]
@@ -119,14 +122,14 @@ class GoogleDownloader(DownloaderBase):
         return "Google Downloader (%s)" % self.sceneInfo
 
 
-class AmazonS3Downloader(DownloaderBase):
-    """Can download scene files from Amazon S3 Storage"""
+class AWSDownloader(DownloaderBase):
+    """Can download scene files from AWS Storage"""
     __url = 'http://landsat-pds.s3.amazonaws.com/L8/'
     __prefixesValid = ('LC8', 'LO8')
     __remote_file_ext = 'TIF'
 
     def __init__(self, sceneInfo):
-        super(AmazonS3Downloader, self).__init__(sceneInfo)
+        super(AWSDownloader, self).__init__(sceneInfo)
 
         self.validate_sceneInfo()
 
@@ -134,22 +137,23 @@ class AmazonS3Downloader(DownloaderBase):
             self.__url,
             sceneInfo.path,
             sceneInfo.row,
-            sceneInfo.name)
+            sceneInfo.name
+        )
 
         if not self.remote_file_exists():
-            raise RemoteFileDoesntExist('%s is not available on Amazon S3 Storage'
+            raise RemoteFileDoesntExist('%s is not available on AWS Storage'
                 % self.sceneInfo.name)
 
     def validate_sceneInfo(self):
-        ''' Check whether sceneInfo is valid to download on Amazon S3 Storage '''
+        '''Check whether sceneInfo is valid to download on AWS Storage '''
         if self.sceneInfo.prefix not in self.__prefixesValid:
-            raise WrongSceneNameError('Amazon S3: Prefix of %s (%s) is invalid'
+            raise WrongSceneNameError('AWS: Prefix of %s (%s) is invalid'
                 % (self.sceneInfo.name, self.sceneInfo.prefix))
 
     def remote_file_exists(self):
-        '''Verify whether the file (scene) exists on Amazon S3 Storage'''
+        '''Verify whether the file (scene) exists on AWS Storage'''
         url = join(self.base_url, 'index.html')
-        return super(AmazonS3Downloader, self).remote_file_exists(url)
+        return super(AWSDownloader, self).remote_file_exists(url)
 
     def download(self, bands, download_dir=None, metadata=False):
         """ """
@@ -185,7 +189,7 @@ class AmazonS3Downloader(DownloaderBase):
                 raise InvalidBandError('%s is not a valid band' % band)
 
     def __repr__(self):
-        return "Downloader Amazon S3 (%s)" % self.sceneInfo
+        return "Downloader AWS (%s)" % self.sceneInfo
 
 
 class Downloader(object):
@@ -197,16 +201,17 @@ class Downloader(object):
         errors = []
 
         if downloaders is None:
-            downloaders = [AmazonS3Downloader, GoogleDownloader]
+            downloaders = [AWSDownloader, GoogleDownloader]
 
         for DownloaderClass in downloaders:
             try:
                 print("Trying instantiate by %s" % DownloaderClass)
                 self.downloader = DownloaderClass(self.sceneInfo)
-                break;
+                break
             except (WrongSceneNameError, RemoteFileDoesntExist) as error:
                 errors.append(error)
                 print("%s couldn't be instantiated: (%s)" % (DownloaderClass, error))
+
         print(self.downloader)
         if self.downloader is None:
             raise DownloaderErrors(errors)

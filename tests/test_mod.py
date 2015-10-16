@@ -1,14 +1,15 @@
 from pytest import raises
 
-from os.path import isfile, getsize, expanduser
-from os import remove
+from os.path import isfile, getsize
 from shutil import rmtree
 
-from lc8_download.lc8 import SceneInfo, DownloaderBase, AmazonS3Downloader, GoogleDownloader, Downloader
+from lc8_download.lc8 import SceneInfo, DownloaderBase, AWSDownloader
+from lc8_download.lc8 import GoogleDownloader, Downloader
 from lc8_download.lc8 import WrongSceneNameError, InvalidBandError, DownloaderErrors
 from lc8_download.lc8 import RemoteFileDoesntExist
 
-def test_sceneInfo_validation():
+
+def test_SceneInfo_validation():
     with raises(WrongSceneNameError):
         SceneInfo('a')
 
@@ -19,6 +20,7 @@ def test_sceneInfo_validation():
     assert scene.path == '003'
     assert scene.row == '017'
 
+
 def test_DownloaderBase_sceneInfoType():
     with raises(TypeError):
         DownloaderBase('LC80030172015001LGN00')
@@ -27,7 +29,7 @@ def test_DownloaderBase_sceneInfoType():
     assert type(download) is DownloaderBase
 
 
-def test_googleDownloader_name_validation():
+def test_GoogleDownloader_name_validation():
     with raises(WrongSceneNameError):
         GoogleDownloader(SceneInfo('L882290692015208LGN01'))
 
@@ -36,17 +38,19 @@ def test_googleDownloader_name_validation():
 
     assert GoogleDownloader(SceneInfo('LT50010191998164PAC00'))
 
-def test_amazonS3Downloader_name_validation():
+
+def test_AWSDownloader_name_validation():
     with raises(WrongSceneNameError):
-        AmazonS3Downloader(SceneInfo('L882290692015208LGN01'))
+        AWSDownloader(SceneInfo('L882290692015208LGN01'))
 
     with raises(RemoteFileDoesntExist):
-        AmazonS3Downloader(SceneInfo('LC89990172015001LGN00'))
+        AWSDownloader(SceneInfo('LC89990172015001LGN00'))
 
-    assert AmazonS3Downloader(SceneInfo('LC80030172015001LGN00'))
+    assert AWSDownloader(SceneInfo('LC80030172015001LGN00'))
 
-def  test_AmazonS3Downloader_bands_validation():
-    donwloader = AmazonS3Downloader(SceneInfo('LC80030172015001LGN00'))
+
+def  test_AWSDownloader_bands_validation():
+    donwloader = AWSDownloader(SceneInfo('LC80030172015001LGN00'))
     with raises(TypeError):
         donwloader.download(12)
 
