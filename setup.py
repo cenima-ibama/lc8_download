@@ -8,7 +8,7 @@ with codecs_open('README.rst', encoding='utf-8') as f:
 
 
 setup(name='lc8_download',
-      version='0.2',
+      version='0.2.1',
       description="""Library to download Landsat imagery from AWS or Google
       Earth Engine servers""",
       long_description=long_description,

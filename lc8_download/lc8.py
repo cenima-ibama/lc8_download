@@ -4,7 +4,8 @@ import requests
 from homura import download as fetch
 
 from os.path import join, expanduser, exists, getsize
-from os import makedirs
+from os import makedirs, remove
+import tarfile
 
 DOWNLOAD_DIR = join(expanduser('~'), 'landsat')
 
@@ -36,7 +37,7 @@ class DownloaderBase:
 
     def fetch(self, url, path, filename):
         """Verify if the file is already downloaded and complete. If they don't
-        exists or if are not complete,LGN00 use homura download function to fetch
+        exists or if are not complete, use homura download function to fetch
         files. Return a list with the path of the downloaded file and the size
         of the remote file.
         """
@@ -54,11 +55,11 @@ class DownloaderBase:
         return [join(path, filename), remote_file_size]
 
     def remote_file_exists(self, url):
-        """ Check whether the remote file exists on Storage"""
+        """Check whether the remote file exists on Storage"""
         return requests.head(url).status_code == 200
 
     def get_remote_file_size(self, url):
-        """ Gets the filesize of a remote file """
+        """Gets the filesize of a remote file """
         headers = requests.head(url).headers
         return int(headers['content-length'])
 
@@ -92,30 +93,33 @@ class GoogleDownloader(DownloaderBase):
         print(self.remote_file_url)
 
     def validate_sceneInfo(self):
-        """ Check the scene name and whether remote file exists.
-        Raises WrongSceneNameError whether the scene name is wrong.
+        """Check scene name and whether remote file exists. Raises
+        WrongSceneNameError if the scene name is wrong.
         """
         if self.sceneInfo.prefix not in self.__satellitesMap:
             raise WrongSceneNameError('Google Downloader: Prefix of %s (%s) is invalid'
                 % (self.sceneInfo.name, self.sceneInfo.prefix))
 
     def remote_file_exists(self):
-        """ Verify if remote file exists.
-        Returns True whether it exists and Fals cause it does not exists
-        """
+        """Verify if the remote file exists. Returns True or False."""
         return super(GoogleDownloader, self).remote_file_exists(self.remote_file_url)
 
     def download(self, bands, download_dir=None, metadata=False):
-        """Download remote tar.gz file with bands from scene specified on
-        sceneInfo.
-        """
+        """Download remote .tar.bz file."""
 
         if download_dir is None:
             download_dir = DOWNLOAD_DIR
 
         check_create_folder(join(download_dir, self.sceneInfo.name))
-        filename = "%s.%s" % (self.sceneInfo.name, self.__remote_file_ext)
+        filename = "%s%s" % (self.sceneInfo.name, self.__remote_file_ext)
         downloaded = self.fetch(self.remote_file_url, download_dir, filename)
+        try:
+            tar = tarfile.open(downloaded[0], 'r')
+            tar.extractall(join(download_dir, self.sceneInfo.name))
+            remove(downloaded[0])
+        except tarfile.ReadError:
+            print('Error when extracting files.')
+
         return [downloaded]
 
     def __repr__(self):
@@ -123,7 +127,7 @@ class GoogleDownloader(DownloaderBase):
 
 
 class AWSDownloader(DownloaderBase):
-    """Can download scene files from AWS Storage"""
+    """Download Landsat 8 imagery from AWS Storage."""
     __url = 'http://landsat-pds.s3.amazonaws.com/L8/'
     __prefixesValid = ('LC8', 'LO8')
     __remote_file_ext = 'TIF'
@@ -145,18 +149,18 @@ class AWSDownloader(DownloaderBase):
                 % self.sceneInfo.name)
 
     def validate_sceneInfo(self):
-        '''Check whether sceneInfo is valid to download on AWS Storage '''
+        """Check whether sceneInfo is valid to download from AWS Storage."""
         if self.sceneInfo.prefix not in self.__prefixesValid:
             raise WrongSceneNameError('AWS: Prefix of %s (%s) is invalid'
                 % (self.sceneInfo.name, self.sceneInfo.prefix))
 
     def remote_file_exists(self):
-        '''Verify whether the file (scene) exists on AWS Storage'''
+        """Verify whether the file (scene) exists on AWS Storage."""
         url = join(self.base_url, 'index.html')
         return super(AWSDownloader, self).remote_file_exists(url)
 
     def download(self, bands, download_dir=None, metadata=False):
-        """ """
+        """Download each specified band and metadata."""
         self.validate_bands(bands)
         if download_dir is None:
             download_dir = DOWNLOAD_DIR
@@ -193,7 +197,9 @@ class AWSDownloader(DownloaderBase):
 
 
 class Downloader(object):
-    """Download Landsat 8 imagery from Amazon servers."""
+    """Class that calls AWSDownloader and GoogleDownloader class to
+    download Landsat imagery.
+    """
 
     def __init__(self, scene, downloaders=None):
         self.downloader = None
