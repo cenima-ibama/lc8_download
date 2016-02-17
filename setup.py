@@ -1,14 +1,17 @@
+import lc8_download
+
 from codecs import open as codecs_open
 from setuptools import setup, find_packages
 
+
+version = lc8_download.version
 
 # Get the long description from the relevant file
 with codecs_open('README.rst', encoding='utf-8') as f:
     long_description = f.read()
 
-
 setup(name='lc8_download',
-      version='0.2.1',
+      version=version,
       description="""Library to download Landsat imagery from AWS or Google
       Earth Engine servers""",
       long_description=long_description,
