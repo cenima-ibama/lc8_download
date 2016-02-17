@@ -4,8 +4,9 @@ import requests
 from homura import download as fetch
 
 from os.path import join, expanduser, exists, getsize
-from os import makedirs, remove
+from os import makedirs, remove, listdir
 import tarfile
+import re
 
 DOWNLOAD_DIR = join(expanduser('~'), 'landsat')
 
@@ -63,6 +64,15 @@ class DownloaderBase:
         headers = requests.head(url).headers
         return int(headers['content-length'])
 
+    def validate_bands(self, bands):
+        """Validate bands parameter."""
+        if not isinstance(bands, list):
+            raise TypeError('Parameter bands must be a "list"')
+        valid_bands = list(range(1, 12)) + ['BQA']
+        for band in bands:
+            if band not in valid_bands:
+                raise InvalidBandError('%s is not a valid band' % band)
+
 
 class GoogleDownloader(DownloaderBase):
     """Download Landsat Imagery from Google Earth Engine."""
@@ -106,6 +116,10 @@ class GoogleDownloader(DownloaderBase):
 
     def download(self, bands, download_dir=None, metadata=False):
         """Download remote .tar.bz file."""
+        super(GoogleDownloader, self).validate_bands(bands)
+        pattern = re.compile('^[^\s]+_(.+)\.')
+        image_list = []
+        band_list = ['B%i' % (i,) if isinstance(i, int) else i for i in bands]
 
         if download_dir is None:
             download_dir = DOWNLOAD_DIR
@@ -115,12 +129,23 @@ class GoogleDownloader(DownloaderBase):
         downloaded = self.fetch(self.remote_file_url, download_dir, filename)
         try:
             tar = tarfile.open(downloaded[0], 'r')
-            tar.extractall(join(download_dir, self.sceneInfo.name))
+            folder_path = join(download_dir, self.sceneInfo.name)
+            tar.extractall(folder_path)
             remove(downloaded[0])
+            images_path = listdir(folder_path)
+
+            for image_path in images_path:
+                matched = pattern.match(image_path)
+                file_path = join(folder_path, image_path)
+                if matched and matched.group(1) in band_list:
+                    image_list.append([file_path, getsize(file_path)])
+                else:
+                    remove(file_path)
+
         except tarfile.ReadError:
             print('Error when extracting files.')
 
-        return [downloaded]
+        return image_list
 
     def __repr__(self):
         return "Google Downloader (%s)" % self.sceneInfo
@@ -161,7 +186,7 @@ class AWSDownloader(DownloaderBase):
 
     def download(self, bands, download_dir=None, metadata=False):
         """Download each specified band and metadata."""
-        self.validate_bands(bands)
+        super(AWSDownloader, self).validate_bands(bands)
         if download_dir is None:
             download_dir = DOWNLOAD_DIR
 

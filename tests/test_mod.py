@@ -38,6 +38,13 @@ def test_GoogleDownloader_name_validation():
 
     assert GoogleDownloader(SceneInfo('LT50010191998164PAC00'))
 
+def test_GoogleDownloader_bands_validation():
+    base_path = 'tests/'
+    downloader = GoogleDownloader(SceneInfo('LC82290692016035LGN00'))
+    downloaded = downloader.download([10], base_path)
+    assert len(downloaded) == 1
+    assert downloaded[0][0] == '%sLC82290692016035LGN00/LC82290692016035LGN00_B10.TIF' % base_path
+    remove(downloaded[0][0])
 
 def test_AWSDownloader_name_validation():
     with raises(WrongSceneNameError):
@@ -95,8 +102,9 @@ def test_bands_validation():
     with raises(InvalidBandError):
         scene.download(['BAQ'])
 
-    download = scene.download([11], 'tests/')
+    download = scene.download([10], 'tests/')
     assert len(download) == 1
     assert isfile(download[0][0])
     assert getsize(download[0][0]) == download[0][1]
+    assert 'tests/LC80030172015001LGN00/LC80030172015001LGN00_B10.TIF' == download[0][0]
     rmtree('tests/LC80030172015001LGN00/')
