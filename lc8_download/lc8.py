@@ -117,7 +117,7 @@ class GoogleDownloader(DownloaderBase):
     def download(self, bands, download_dir=None, metadata=False):
         """Download remote .tar.bz file."""
         super(GoogleDownloader, self).validate_bands(bands)
-        pattern = re.compile('^[^\s]+_(.+)\.')
+        pattern = re.compile('^[^\s]+_(.+)\.tiff?', re.I)
         image_list = []
         band_list = ['B%i' % (i,) if isinstance(i, int) else i for i in bands]
 
@@ -139,7 +139,7 @@ class GoogleDownloader(DownloaderBase):
                 file_path = join(folder_path, image_path)
                 if matched and matched.group(1) in band_list:
                     image_list.append([file_path, getsize(file_path)])
-                else:
+                elif matched:
                     remove(file_path)
 
         except tarfile.ReadError:
