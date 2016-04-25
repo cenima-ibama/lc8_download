@@ -33,7 +33,8 @@ setup(name='lc8_download',
       install_requires=[
           'click',
           'requests',
-          'homura'
+          'homura',
+          'USGSDownload',
       ],
       extras_require={
           'test': ['pytest'],

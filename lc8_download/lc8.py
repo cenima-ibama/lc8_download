@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
+import logging
 import requests
+import sys
 from homura import download as fetch
-
+from usgsdownload.usgs import USGSDownload, SceneInfo as scene_info
 from os.path import join, expanduser, exists, getsize
-from os import makedirs, remove, listdir
+from os import makedirs, remove, listdir, environ
 import tarfile
 import re
 
 DOWNLOAD_DIR = join(expanduser('~'), 'landsat')
 
+logger = logging.getLogger(__name__)
 
-class SceneInfo():
+
+class SceneInfo:
     """Extract information about scene from sceneName"""
     def __init__(self, sceneName):
+        logger.debug('Scene: ', sceneName)
         self.name = sceneName
         self.validate_name()
         self.path = sceneName[3:6]
@@ -33,6 +37,7 @@ class DownloaderBase:
 
     def __init__(self, sceneInfo):
         if not isinstance(sceneInfo, SceneInfo):
+            logger.error('sceneInfo must be instance of SceneInfo')
             raise TypeError('sceneInfo must be instance of SceneInfo')
         self.sceneInfo = sceneInfo
 
@@ -42,17 +47,21 @@ class DownloaderBase:
         files. Return a list with the path of the downloaded file and the size
         of the remote file.
         """
+        logger.debug('initializing download in ', url)
         remote_file_size = self.get_remote_file_size(url)
 
         if exists(join(path, filename)):
             size = getsize(join(path, filename))
             if size == remote_file_size:
+                logger.error('%s already exists on your system' % filename)
                 print('%s already exists on your system' % filename)
                 return [join(path, filename), size]
 
+        logger.debug('Downloading: %s' % filename)
         print('Downloading: %s' % filename)
         fetch(url, path)
         print('stored at %s' % path)
+        logger.debug('stored at %s' % path)
         return [join(path, filename), remote_file_size]
 
     def remote_file_exists(self, url):
@@ -67,10 +76,12 @@ class DownloaderBase:
     def validate_bands(self, bands):
         """Validate bands parameter."""
         if not isinstance(bands, list):
+            logger.error('Parameter bands must be a "list"')
             raise TypeError('Parameter bands must be a "list"')
         valid_bands = list(range(1, 12)) + ['BQA']
         for band in bands:
             if band not in valid_bands:
+                logger.error('%s is not a valid band' % band)
                 raise InvalidBandError('%s is not a valid band' % band)
 
 
@@ -97,6 +108,7 @@ class GoogleDownloader(DownloaderBase):
         )
 
         if not self.remote_file_exists():
+            logger.error('%s is not available on Google Storage' % self.sceneInfo.name)
             raise RemoteFileDoesntExist('%s is not available on Google Storage'
                 % self.sceneInfo.name)
 
@@ -107,6 +119,8 @@ class GoogleDownloader(DownloaderBase):
         WrongSceneNameError if the scene name is wrong.
         """
         if self.sceneInfo.prefix not in self.__satellitesMap:
+            logger.error('Google Downloader: Prefix of %s (%s) is invalid'
+                % (self.sceneInfo.name, self.sceneInfo.prefix))
             raise WrongSceneNameError('Google Downloader: Prefix of %s (%s) is invalid'
                 % (self.sceneInfo.name, self.sceneInfo.prefix))
 
@@ -128,8 +142,10 @@ class GoogleDownloader(DownloaderBase):
         filename = "%s%s" % (self.sceneInfo.name, self.__remote_file_ext)
         downloaded = self.fetch(self.remote_file_url, download_dir, filename)
         try:
+
             tar = tarfile.open(downloaded[0], 'r')
             folder_path = join(download_dir, self.sceneInfo.name)
+            logger.debug('Starting data extraction in directory ', folder_path)
             tar.extractall(folder_path)
             remove(downloaded[0])
             images_path = listdir(folder_path)
@@ -142,7 +158,8 @@ class GoogleDownloader(DownloaderBase):
                 elif matched:
                     remove(file_path)
 
-        except tarfile.ReadError:
+        except tarfile.ReadError as error:
+            logger.error('Error when extracting files: ', error)
             print('Error when extracting files.')
 
         return image_list
@@ -170,6 +187,7 @@ class AWSDownloader(DownloaderBase):
         )
 
         if not self.remote_file_exists():
+            logger.error('%s is not available on AWS Storage' % self.sceneInfo.name)
             raise RemoteFileDoesntExist('%s is not available on AWS Storage'
                 % self.sceneInfo.name)
 
@@ -211,14 +229,30 @@ class AWSDownloader(DownloaderBase):
     def validate_bands(self, bands):
         """Validate bands parameter."""
         if not isinstance(bands, list):
+            logger.error('Parameter bands must be a "list"')
             raise TypeError('Parameter bands must be a "list"')
         valid_bands = list(range(1, 12)) + ['BQA']
         for band in bands:
             if band not in valid_bands:
+                logger.error('%s is not a valid band' % band)
                 raise InvalidBandError('%s is not a valid band' % band)
 
     def __repr__(self):
         return "Downloader AWS (%s)" % self.sceneInfo
+
+
+class USGSDownloader(USGSDownload):
+
+    def __init__(self, scene):
+        try:
+            user = environ['USGS_USER']
+            password = environ['USGS_PASSWORD']
+        except KeyError:
+            logger.error('Please set the environment variable USGS_USER and USGS_PASSWORD')
+            raise CredentialUsgsError('Please set the environment variable USGS_USER and USGS_PASSWORD')
+        if isinstance(scene, SceneInfo):
+            scene = scene_info(scene.name)
+        super(USGSDownloader, self).__init__(scene, user=user, password=password)
 
 
 class Downloader(object):
@@ -232,15 +266,17 @@ class Downloader(object):
         errors = []
 
         if downloaders is None:
-            downloaders = [AWSDownloader, GoogleDownloader]
+            downloaders = [USGSDownloader, AWSDownloader, GoogleDownloader]
 
         for DownloaderClass in downloaders:
             try:
+                logger.debug("Trying instantiate by %s" % DownloaderClass)
                 print("Trying instantiate by %s" % DownloaderClass)
                 self.downloader = DownloaderClass(self.sceneInfo)
                 break
-            except (WrongSceneNameError, RemoteFileDoesntExist) as error:
+            except (WrongSceneNameError, RemoteFileDoesntExist, Exception) as error:
                 errors.append(error)
+                logger.error("%s couldn't be instantiated: (%s)" % (DownloaderClass, error))
                 print("%s couldn't be instantiated: (%s)" % (DownloaderClass, error))
 
         print(self.downloader)
@@ -248,6 +284,7 @@ class Downloader(object):
             raise DownloaderErrors(errors)
 
     def download(self, *args, **kwargs):
+        logger.debug("Downloading by %s" % self.downloader)
         print("Downloading by %s" % self.downloader)
         return self.downloader.download(*args, **kwargs)
 
@@ -261,6 +298,10 @@ class RemoteFileDoesntExist(Exception):
 
 
 class InvalidBandError(Exception):
+    pass
+
+
+class CredentialUsgsError(Exception):
     pass
 
 
